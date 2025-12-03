@@ -158,18 +158,20 @@ class IndexerCandlesticksParams(IndexerBaseParams):
     Parameters for querying candlestick data.
     """
 
-    model_config = ConfigDict(
-        populate_by_name=True,
-        json_schema_extra={"exclude": {"idx"}}
-    )
+    model_config = ConfigDict(populate_by_name=True)
 
     product_id: int
     granularity: IndexerCandlesticksGranularity
 
     def model_dump(self, **kwargs):
-        kwargs.setdefault("exclude", set())
-        if isinstance(kwargs["exclude"], set):
-            kwargs["exclude"].add("idx")
+        # Ensure idx is always excluded for this model
+        exclude = kwargs.get("exclude")
+        if exclude is None:
+            kwargs["exclude"] = {"idx"}
+        elif isinstance(exclude, set):
+            exclude.add("idx")
+        elif isinstance(exclude, dict):
+            exclude["idx"] = True
         return super().model_dump(**kwargs)
 
 
