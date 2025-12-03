@@ -1,7 +1,7 @@
 from nado_protocol.utils.enum import StrEnum
 from typing import Dict, List, Optional, Tuple, Type, Union
 
-from pydantic import Field, validator
+from pydantic import Field, ConfigDict
 from nado_protocol.indexer_client.types.models import (
     IndexerCandlestick,
     IndexerCandlesticksGranularity,
@@ -59,12 +59,11 @@ class IndexerBaseParams(NadoBaseModel):
     Base parameters for the indexer queries.
     """
 
-    idx: Optional[int] = Field(alias="submission_idx")
-    max_time: Optional[int]
-    limit: Optional[int]
+    model_config = ConfigDict(populate_by_name=True)
 
-    class Config:
-        allow_population_by_field_name = True
+    idx: Optional[int] = Field(default=None, alias="submission_idx")
+    max_time: Optional[int] = None
+    limit: Optional[int] = None
 
 
 class IndexerSubaccountHistoricalOrdersParams(IndexerBaseParams):
@@ -72,14 +71,12 @@ class IndexerSubaccountHistoricalOrdersParams(IndexerBaseParams):
     Parameters for querying historical orders by subaccounts.
     """
 
-    subaccounts: Optional[list[str]]
-    product_ids: Optional[list[int]]
-    trigger_types: Optional[list[str]]
-    isolated: Optional[bool]
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
-    class Config:
-        # Ensure this doesn't get confused with digest params
-        extra = "forbid"
+    subaccounts: Optional[list[str]] = None
+    product_ids: Optional[list[int]] = None
+    trigger_types: Optional[list[str]] = None
+    isolated: Optional[bool] = None
 
 
 class IndexerHistoricalOrdersByDigestParams(NadoBaseModel):
@@ -87,11 +84,9 @@ class IndexerHistoricalOrdersByDigestParams(NadoBaseModel):
     Parameters for querying historical orders by digests.
     """
 
-    digests: list[str]
+    model_config = ConfigDict(extra="forbid")
 
-    class Config:
-        # Ensure this doesn't get confused with subaccount params
-        extra = "forbid"
+    digests: list[str]
 
 
 class IndexerMatchesParams(IndexerBaseParams):
@@ -163,11 +158,19 @@ class IndexerCandlesticksParams(IndexerBaseParams):
     Parameters for querying candlestick data.
     """
 
+    model_config = ConfigDict(
+        populate_by_name=True,
+        json_schema_extra={"exclude": {"idx"}}
+    )
+
     product_id: int
     granularity: IndexerCandlesticksGranularity
 
-    class Config:
-        fields = {"idx": {"exclude": True}}
+    def model_dump(self, **kwargs):
+        kwargs.setdefault("exclude", set())
+        if isinstance(kwargs["exclude"], set):
+            kwargs["exclude"].add("idx")
+        return super().model_dump(**kwargs)
 
 
 class IndexerFundingRateParams(NadoBaseModel):
@@ -295,9 +298,6 @@ class IndexerHistoricalOrdersRequest(NadoBaseModel):
     orders: Union[
         IndexerSubaccountHistoricalOrdersParams, IndexerHistoricalOrdersByDigestParams
     ]
-
-    class Config:
-        smart_union = True
 
 
 class IndexerMatchesRequest(NadoBaseModel):
@@ -699,7 +699,7 @@ def to_indexer_request(params: IndexerParams) -> IndexerRequest:
     }
 
     RequestClass, field_name = indexer_request_mapping[type(params)]
-    return RequestClass.parse_obj({field_name: params.dict(exclude_none=False)})  # type: ignore[attr-defined]
+    return RequestClass.model_validate({field_name: params.model_dump(exclude_none=False)})  # type: ignore[attr-defined]
 
 
 IndexerTickersData = Dict[str, IndexerTickerInfo]

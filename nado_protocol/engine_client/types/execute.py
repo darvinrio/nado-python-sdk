@@ -1,5 +1,5 @@
 from typing import Optional, Type, Union, Sequence
-from pydantic import validator
+from pydantic import field_validator, model_validator
 from nado_protocol.contracts.types import NadoExecuteType
 from nado_protocol.engine_client.types.models import ResponseStatus
 from nado_protocol.utils.execute import (
@@ -37,11 +37,11 @@ class PlaceOrderParams(SignatureParams):
         spot_leverage (Optional[bool]): An optional flag indicating whether leverage should be used for the order. By default, leverage is assumed.
     """
 
-    id: Optional[int]
+    id: Optional[int] = None
     product_id: int
     order: OrderParams
-    digest: Optional[str]
-    spot_leverage: Optional[bool]
+    digest: Optional[str] = None
+    spot_leverage: Optional[bool] = None
 
 
 class PlaceOrdersParams(NadoBaseModel):
@@ -56,7 +56,7 @@ class PlaceOrdersParams(NadoBaseModel):
     """
 
     orders: Sequence[PlaceOrderParams]
-    stop_on_failure: Optional[bool]
+    stop_on_failure: Optional[bool] = None
 
 
 class PlaceMarketOrderParams(SignatureParams):
@@ -77,9 +77,9 @@ class PlaceMarketOrderParams(SignatureParams):
 
     product_id: int
     market_order: MarketOrderParams
-    slippage: Optional[float]
-    spot_leverage: Optional[bool]
-    reduce_only: Optional[bool]
+    slippage: Optional[float] = None
+    spot_leverage: Optional[bool] = None
+    reduce_only: Optional[bool] = None
 
 
 class CancelOrdersParams(BaseParamsSigned):
@@ -99,9 +99,10 @@ class CancelOrdersParams(BaseParamsSigned):
 
     productIds: list[int]
     digests: list[Digest]
-    nonce: Optional[int]
+    nonce: Optional[int] = None
 
-    @validator("digests")
+    @field_validator("digests")
+    @classmethod
     def serialize_digests(cls, v: list[Digest]) -> list[bytes]:
         return [hex_to_bytes32(digest) for digest in v]
 
@@ -119,8 +120,8 @@ class CancelProductOrdersParams(BaseParamsSigned):
     """
 
     productIds: list[int]
-    digest: Optional[str]
-    nonce: Optional[int]
+    digest: Optional[str] = None
+    nonce: Optional[int] = None
 
 
 class CancelAndPlaceParams(NadoBaseModel):
@@ -151,7 +152,7 @@ class WithdrawCollateralParams(BaseParamsSigned):
 
     productId: int
     amount: int
-    spot_leverage: Optional[bool]
+    spot_leverage: Optional[bool] = None
 
 
 class LiquidateSubaccountParams(BaseParamsSigned):
@@ -176,7 +177,8 @@ class LiquidateSubaccountParams(BaseParamsSigned):
     isEncodedSpread: bool
     amount: int
 
-    @validator("liquidatee")
+    @field_validator("liquidatee")
+    @classmethod
     def serialize_liquidatee(cls, v: Subaccount) -> bytes:
         return subaccount_to_bytes32(v)
 
@@ -193,7 +195,7 @@ class MintNlpParams(BaseParamsSigned):
     """
 
     quoteAmount: int
-    spot_leverage: Optional[bool]
+    spot_leverage: Optional[bool] = None
 
 
 class BurnNlpParams(BaseParamsSigned):
@@ -223,7 +225,8 @@ class LinkSignerParams(BaseParamsSigned):
 
     signer: Subaccount
 
-    @validator("signer")
+    @field_validator("signer")
+    @classmethod
     def serialize_signer(cls, v: Subaccount) -> bytes:
         return subaccount_to_bytes32(v)
 
@@ -255,7 +258,8 @@ class PlaceOrderRequest(NadoBaseModel):
 
     place_order: PlaceOrderParams
 
-    @validator("place_order")
+    @field_validator("place_order")
+    @classmethod
     def serialize(cls, v: PlaceOrderParams) -> PlaceOrderParams:
         if v.order.nonce is None:
             raise ValueError("Missing order `nonce`")
@@ -282,7 +286,8 @@ class PlaceOrdersRequest(NadoBaseModel):
 
     place_orders: PlaceOrdersParams
 
-    @validator("place_orders")
+    @field_validator("place_orders")
+    @classmethod
     def serialize(cls, v: PlaceOrdersParams) -> PlaceOrdersParams:
         for order_params in v.orders:
             if order_params.order.nonce is None:
@@ -317,10 +322,11 @@ class TxRequest(NadoBaseModel):
 
     tx: dict
     signature: str
-    spot_leverage: Optional[bool]
-    digest: Optional[str]
+    spot_leverage: Optional[bool] = None
+    digest: Optional[str] = None
 
-    @validator("tx")
+    @field_validator("tx")
+    @classmethod
     def serialize(cls, v: dict) -> dict:
         """
         Validates and serializes the transaction parameters.
@@ -341,13 +347,11 @@ class TxRequest(NadoBaseModel):
         return v
 
 
-def to_tx_request(cls: Type[NadoBaseModel], v: BaseParamsSigned) -> TxRequest:
+def to_tx_request(v: BaseParamsSigned) -> TxRequest:
     """
     Converts a BaseParamsSigned object to a TxRequest object.
 
     Args:
-        cls (Type[NadoBaseModel]): The type of the model to convert.
-
         v (BaseParamsSigned): The signed parameters to be converted.
 
     Raises:
@@ -379,23 +383,20 @@ class CancelOrdersRequest(NadoBaseModel):
         to_tx_request: Validates and converts 'cancel_orders' into a transaction request.
     """
 
-    cancel_orders: CancelOrdersParams
+    cancel_orders: Union[CancelOrdersParams, TxRequest]
 
-    @validator("cancel_orders")
-    def serialize(cls, v: CancelOrdersParams) -> CancelOrdersParams:
+    @model_validator(mode="after")
+    def validate_and_transform(self):
         """
-        Serializes 'digests' in 'cancel_orders' into their hexadecimal representation.
-
-        Args:
-            v (CancelOrdersParams): The parameters of the orders to be cancelled.
-
-        Returns:
-            CancelOrdersParams: The 'cancel_orders' with serialized 'digests'.
+        Serializes 'digests' in 'cancel_orders' into their hexadecimal representation
+        and converts to transaction request.
         """
-        v.serialize_dict(["digests"], lambda l: [bytes32_to_hex(x) for x in l])
-        return v
-
-    _validator = validator("cancel_orders", allow_reuse=True)(to_tx_request)
+        if isinstance(self.cancel_orders, CancelOrdersParams):
+            self.cancel_orders.serialize_dict(
+                ["digests"], lambda l: [bytes32_to_hex(x) for x in l]
+            )
+            self.cancel_orders = to_tx_request(self.cancel_orders)
+        return self
 
 
 class CancelAndPlaceRequest(NadoBaseModel):
@@ -408,9 +409,10 @@ class CancelAndPlaceRequest(NadoBaseModel):
 
     cancel_and_place: CancelAndPlaceParams
 
-    @validator("cancel_and_place")
+    @field_validator("cancel_and_place")
+    @classmethod
     def serialize(cls, v: CancelAndPlaceParams) -> dict:
-        cancel_tx = TxRequest.parse_obj(
+        cancel_tx = TxRequest.model_validate(
             CancelOrdersRequest(cancel_orders=v.cancel_orders).cancel_orders
         )
         return {
@@ -431,9 +433,14 @@ class CancelProductOrdersRequest(NadoBaseModel):
         to_tx_request: Validates and converts 'cancel_product_orders' into a transaction request.
     """
 
-    cancel_product_orders: CancelProductOrdersParams
+    cancel_product_orders: Union[CancelProductOrdersParams, TxRequest]
 
-    _validator = validator("cancel_product_orders", allow_reuse=True)(to_tx_request)
+    @model_validator(mode="after")
+    def validate_and_transform(self):
+        """Converts cancel_product_orders to transaction request."""
+        if isinstance(self.cancel_product_orders, CancelProductOrdersParams):
+            self.cancel_product_orders = to_tx_request(self.cancel_product_orders)
+        return self
 
 
 class WithdrawCollateralRequest(NadoBaseModel):
@@ -449,14 +456,15 @@ class WithdrawCollateralRequest(NadoBaseModel):
         to_tx_request: Validates and converts 'withdraw_collateral' into a transaction request.
     """
 
-    withdraw_collateral: WithdrawCollateralParams
+    withdraw_collateral: Union[WithdrawCollateralParams, TxRequest]
 
-    @validator("withdraw_collateral")
-    def serialize(cls, v: WithdrawCollateralParams) -> WithdrawCollateralParams:
-        v.serialize_dict(["amount"], str)
-        return v
-
-    _validator = validator("withdraw_collateral", allow_reuse=True)(to_tx_request)
+    @model_validator(mode="after")
+    def validate_and_transform(self):
+        """Serializes and converts withdraw_collateral to transaction request."""
+        if isinstance(self.withdraw_collateral, WithdrawCollateralParams):
+            self.withdraw_collateral.serialize_dict(["amount"], str)
+            self.withdraw_collateral = to_tx_request(self.withdraw_collateral)
+        return self
 
 
 class LiquidateSubaccountRequest(NadoBaseModel):
@@ -473,15 +481,16 @@ class LiquidateSubaccountRequest(NadoBaseModel):
         to_tx_request: Validates and converts 'liquidate_subaccount' into a transaction request.
     """
 
-    liquidate_subaccount: LiquidateSubaccountParams
+    liquidate_subaccount: Union[LiquidateSubaccountParams, TxRequest]
 
-    @validator("liquidate_subaccount")
-    def serialize(cls, v: LiquidateSubaccountParams) -> LiquidateSubaccountParams:
-        v.serialize_dict(["amount"], str)
-        v.serialize_dict(["liquidatee"], bytes32_to_hex)
-        return v
-
-    _validator = validator("liquidate_subaccount", allow_reuse=True)(to_tx_request)
+    @model_validator(mode="after")
+    def validate_and_transform(self):
+        """Serializes and converts liquidate_subaccount to transaction request."""
+        if isinstance(self.liquidate_subaccount, LiquidateSubaccountParams):
+            self.liquidate_subaccount.serialize_dict(["amount"], str)
+            self.liquidate_subaccount.serialize_dict(["liquidatee"], bytes32_to_hex)
+            self.liquidate_subaccount = to_tx_request(self.liquidate_subaccount)
+        return self
 
 
 class MintNlpRequest(NadoBaseModel):
@@ -497,14 +506,15 @@ class MintNlpRequest(NadoBaseModel):
         to_tx_request: Validates and converts 'mint_nlp' into a transaction request.
     """
 
-    mint_nlp: MintNlpParams
+    mint_nlp: Union[MintNlpParams, TxRequest]
 
-    @validator("mint_nlp")
-    def serialize(cls, v: MintNlpParams) -> MintNlpParams:
-        v.serialize_dict(["quoteAmount"], str)
-        return v
-
-    _validator = validator("mint_nlp", allow_reuse=True)(to_tx_request)
+    @model_validator(mode="after")
+    def validate_and_transform(self):
+        """Serializes and converts mint_nlp to transaction request."""
+        if isinstance(self.mint_nlp, MintNlpParams):
+            self.mint_nlp.serialize_dict(["quoteAmount"], str)
+            self.mint_nlp = to_tx_request(self.mint_nlp)
+        return self
 
 
 class BurnNlpRequest(NadoBaseModel):
@@ -520,14 +530,15 @@ class BurnNlpRequest(NadoBaseModel):
         to_tx_request: Validates and converts 'burn_nlp' into a transaction request.
     """
 
-    burn_nlp: BurnNlpParams
+    burn_nlp: Union[BurnNlpParams, TxRequest]
 
-    @validator("burn_nlp")
-    def serialize(cls, v: BurnNlpParams) -> BurnNlpParams:
-        v.serialize_dict(["nlpAmount"], str)
-        return v
-
-    _validator = validator("burn_nlp", allow_reuse=True)(to_tx_request)
+    @model_validator(mode="after")
+    def validate_and_transform(self):
+        """Serializes and converts burn_nlp to transaction request."""
+        if isinstance(self.burn_nlp, BurnNlpParams):
+            self.burn_nlp.serialize_dict(["nlpAmount"], str)
+            self.burn_nlp = to_tx_request(self.burn_nlp)
+        return self
 
 
 class LinkSignerRequest(NadoBaseModel):
@@ -543,14 +554,15 @@ class LinkSignerRequest(NadoBaseModel):
         to_tx_request: Validates and converts 'link_signer' into a transaction request.
     """
 
-    link_signer: LinkSignerParams
+    link_signer: Union[LinkSignerParams, TxRequest]
 
-    @validator("link_signer")
-    def serialize(cls, v: LinkSignerParams) -> LinkSignerParams:
-        v.serialize_dict(["signer"], bytes32_to_hex)
-        return v
-
-    _validator = validator("link_signer", allow_reuse=True)(to_tx_request)
+    @model_validator(mode="after")
+    def validate_and_transform(self):
+        """Serializes and converts link_signer to transaction request."""
+        if isinstance(self.link_signer, LinkSignerParams):
+            self.link_signer.serialize_dict(["signer"], bytes32_to_hex)
+            self.link_signer = to_tx_request(self.link_signer)
+        return self
 
 
 ExecuteRequest = Union[

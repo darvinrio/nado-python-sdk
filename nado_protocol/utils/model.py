@@ -1,15 +1,15 @@
 from enum import Enum
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Any, Callable, Type, TypeVar, Union
 
 
 class NadoBaseModel(BaseModel):
     """
     This base model extends Pydantic's BaseModel and excludes fields with None
-    values by default when serializing via .dict() or .json()
+    values by default when serializing via .model_dump() or .model_dump_json()
     """
 
-    def dict(self, **kwargs):
+    def model_dump(self, **kwargs):
         """
         Convert model to dictionary, excluding None fields by default.
 
@@ -20,9 +20,24 @@ class NadoBaseModel(BaseModel):
             dict: The model as a dictionary.
         """
         kwargs.setdefault("exclude_none", True)
-        return super().dict(**kwargs)
+        return super().model_dump(**kwargs)
 
-    def json(self, **kwargs):
+    # Keep dict() as an alias for backward compatibility
+    def dict(self, **kwargs):
+        """
+        Convert model to dictionary, excluding None fields by default.
+        Deprecated: Use model_dump() instead.
+
+        Args:
+            kwargs: Arbitrary keyword arguments.
+
+        Returns:
+            dict: The model as a dictionary.
+        """
+        kwargs.setdefault("exclude_none", True)
+        return super().model_dump(**kwargs)
+
+    def model_dump_json(self, **kwargs):
         """
         Convert model to JSON, excluding None fields by default.
 
@@ -33,7 +48,37 @@ class NadoBaseModel(BaseModel):
             str: The model as a JSON string.
         """
         kwargs.setdefault("exclude_none", True)
-        return super().json(**kwargs)
+        return super().model_dump_json(**kwargs)
+
+    # Keep json() as an alias for backward compatibility
+    def json(self, **kwargs):
+        """
+        Convert model to JSON, excluding None fields by default.
+        Deprecated: Use model_dump_json() instead.
+
+        Args:
+            kwargs: Arbitrary keyword arguments.
+
+        Returns:
+            str: The model as a JSON string.
+        """
+        kwargs.setdefault("exclude_none", True)
+        return super().model_dump_json(**kwargs)
+
+    # Keep parse_obj() as an alias for backward compatibility
+    @classmethod
+    def parse_obj(cls, obj: Any):
+        """
+        Parse an object to create a model instance.
+        Deprecated: Use model_validate() instead.
+
+        Args:
+            obj: The object to parse.
+
+        Returns:
+            An instance of the model.
+        """
+        return cls.model_validate(obj)
 
     def serialize_dict(self, fields: list[str], func: Callable):
         """

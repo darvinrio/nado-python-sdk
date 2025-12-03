@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from nado_protocol.contracts.types import NadoTxType
 
 
@@ -27,11 +27,9 @@ class EIP712Types(BaseModel):
         EIP712Domain (list[dict]): A list of dictionaries representing EIP-712 Domain data.
     """
 
-    EIP712Domain: list[dict]
+    model_config = ConfigDict(arbitrary_types_allowed=True, extra="allow")
 
-    class Config:
-        arbitrary_types_allowed = True
-        extra = "allow"
+    EIP712Domain: list[dict]
 
 
 class EIP712TypedData(BaseModel):

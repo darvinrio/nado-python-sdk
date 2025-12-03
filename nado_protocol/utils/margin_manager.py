@@ -14,7 +14,7 @@ Key Concepts:
 from decimal import Decimal
 from time import time
 from typing import Optional, Union, TYPE_CHECKING
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from nado_protocol.engine_client.types.models import (
     SpotProduct,
     PerpProduct,
@@ -57,6 +57,8 @@ class MarginUsageFractions(BaseModel):
 class BalanceWithProduct(BaseModel):
     """Balance combined with its product information."""
 
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     product_id: int
     amount: Decimal
     oracle_price: Decimal
@@ -67,12 +69,11 @@ class BalanceWithProduct(BaseModel):
     balance_type: str  # "spot" or "perp"
     v_quote_balance: Optional[Decimal] = None
 
-    class Config:
-        arbitrary_types_allowed = True
-
 
 class CrossPositionMetrics(BaseModel):
     """Metrics for a cross margin position."""
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     product_id: int
     symbol: str
@@ -88,12 +89,11 @@ class CrossPositionMetrics(BaseModel):
     short_weight_initial: Decimal
     short_weight_maintenance: Decimal
 
-    class Config:
-        arbitrary_types_allowed = True
-
 
 class IsolatedPositionMetrics(BaseModel):
     """Metrics for an isolated margin position."""
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     product_id: int
     symbol: str
@@ -104,12 +104,11 @@ class IsolatedPositionMetrics(BaseModel):
     initial_health: Decimal
     maintenance_health: Decimal
 
-    class Config:
-        arbitrary_types_allowed = True
-
 
 class AccountSummary(BaseModel):
     """Complete account margin summary."""
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     # Overall health
     initial_health: Decimal
@@ -136,9 +135,6 @@ class AccountSummary(BaseModel):
     # Spot balances
     total_spot_deposits: Decimal
     total_spot_borrows: Decimal
-
-    class Config:
-        arbitrary_types_allowed = True
 
 
 class MarginManager:
