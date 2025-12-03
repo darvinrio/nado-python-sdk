@@ -1,28 +1,35 @@
 from typing import Optional, Union, List
+from pydantic import ConfigDict
 from nado_protocol.utils.model import NadoBaseModel
 
 
 class OraclePriceAbove(NadoBaseModel):
+    model_config = ConfigDict(coerce_numbers_to_str=True)
     oracle_price_above: str
 
 
 class OraclePriceBelow(NadoBaseModel):
+    model_config = ConfigDict(coerce_numbers_to_str=True)
     oracle_price_below: str
 
 
 class LastPriceAbove(NadoBaseModel):
+    model_config = ConfigDict(coerce_numbers_to_str=True)
     last_price_above: str
 
 
 class LastPriceBelow(NadoBaseModel):
+    model_config = ConfigDict(coerce_numbers_to_str=True)
     last_price_below: str
 
 
 class MidPriceAbove(NadoBaseModel):
+    model_config = ConfigDict(coerce_numbers_to_str=True)
     mid_price_above: str
 
 
 class MidPriceBelow(NadoBaseModel):
+    model_config = ConfigDict(coerce_numbers_to_str=True)
     mid_price_below: str
 
 

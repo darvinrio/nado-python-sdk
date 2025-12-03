@@ -592,8 +592,8 @@ class PlaceOrdersItemResponse(NadoBaseModel):
     Data model for a single order in place orders response.
     """
 
-    digest: Optional[str]
-    error: Optional[str]
+    digest: Optional[str] = None
+    error: Optional[str] = None
 
 
 class PlaceOrdersResponse(NadoBaseModel):
@@ -640,13 +640,13 @@ class ExecuteResponse(NadoBaseModel):
     """
 
     status: ResponseStatus
-    signature: Optional[str]
-    data: Optional[ExecuteResponseData]
-    error_code: Optional[int]
-    error: Optional[str]
-    request_type: Optional[str]
-    req: Optional[dict]
-    id: Optional[int]
+    signature: Optional[str] = None
+    data: Optional[ExecuteResponseData] = None
+    error_code: Optional[int] = None
+    error: Optional[str] = None
+    request_type: Optional[str] = None
+    req: Optional[dict] = None
+    id: Optional[int] = None
 
 
 def to_execute_request(params: ExecuteParams) -> ExecuteRequest:
