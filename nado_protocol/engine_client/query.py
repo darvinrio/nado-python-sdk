@@ -72,7 +72,7 @@ class EngineQueryClient:
         Args:
             opts (EngineClientOpts): Options for the client.
         """
-        self._opts: EngineClientOpts = EngineClientOpts.parse_obj(opts)
+        self._opts: EngineClientOpts = EngineClientOpts.model_validate(opts)
         self.url: str = self._opts.url
         self.url_v2: str = self.url.replace("/v1", "") + "/v2"
         self.session = requests.Session()  # type: ignore
@@ -328,7 +328,7 @@ class EngineQueryClient:
             for the given subaccount and product.
         """
         return ensure_data_type(
-            self.query(QueryMaxOrderSizeParams.parse_obj(params)).data, MaxOrderSizeData
+            self.query(QueryMaxOrderSizeParams.model_validate(params)).data, MaxOrderSizeData
         )
 
     def get_max_withdrawable(
@@ -472,7 +472,7 @@ class EngineQueryClient:
 
     def get_orderbook(self, ticker_id: str, depth: int) -> Orderbook:
         return ensure_data_type(
-            Orderbook.parse_obj(
+            Orderbook.model_validate(
                 self._query_v2(
                     f"{self.url_v2}/orderbook?ticker_id={ticker_id}&depth={depth}"
                 )

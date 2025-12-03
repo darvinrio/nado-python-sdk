@@ -145,8 +145,7 @@ def nado_client_with_trigger(
     private_keys: list[str],
 ) -> NadoClient:
     from nado_protocol.client.context import NadoClientContextOpts
-    from pydantic import parse_obj_as
-    from pydantic import AnyUrl
+    from pydantic import TypeAdapter, AnyUrl
 
     mock_response = MagicMock()
     mock_response.status_code = 200
@@ -159,8 +158,9 @@ def nado_client_with_trigger(
     }
     mock_post.return_value = mock_response
 
+    any_url_adapter = TypeAdapter(AnyUrl)
     context_opts = NadoClientContextOpts(
-        trigger_endpoint_url=parse_obj_as(AnyUrl, "http://trigger.example.com")
+        trigger_endpoint_url=any_url_adapter.validate_python("http://trigger.example.com")
     )
     return create_nado_client("testing", private_keys[0], context_opts=context_opts)
 
