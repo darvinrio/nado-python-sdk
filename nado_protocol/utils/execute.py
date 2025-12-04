@@ -34,7 +34,7 @@ class BaseParams(NadoBaseModel):
 
     model_config = ConfigDict(validate_assignment=True)
 
-    @field_validator("sender")
+    @field_validator("sender", mode="before")
     @classmethod
     def serialize_sender(cls, v: Subaccount) -> Union[bytes, Subaccount]:
         """
