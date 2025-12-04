@@ -393,23 +393,11 @@ class CancelOrdersRequest(NadoBaseModel):
 
     @field_validator("cancel_orders")
     @classmethod
-    def serialize(cls, v: CancelOrdersParams) -> CancelOrdersParams:
-        """
-        Serializes 'digests' in 'cancel_orders' into their hexadecimal representation.
-
-        Args:
-            v (CancelOrdersParams): The parameters of the orders to be cancelled.
-
-        Returns:
-            CancelOrdersParams: The 'cancel_orders' with serialized 'digests'.
-        """
-        v = v.model_copy(deep=True)
-        v.serialize_dict(["digests"], lambda l: [bytes32_to_hex(x) for x in l])
-        return v
-
-    @field_validator("cancel_orders")
-    @classmethod
-    def validate_to_tx_request(cls, v: Any) -> Any:
+    def validate_cancel_orders(cls, v: Any) -> Any:
+        if isinstance(v, CancelOrdersParams):
+            v = v.model_copy(deep=True)
+            v.serialize_dict(["digests"], lambda l: [bytes32_to_hex(x) for x in l])
+        
         if isinstance(v, BaseParamsSigned):
             return to_tx_request(cls, v)
         return v
@@ -476,14 +464,11 @@ class WithdrawCollateralRequest(NadoBaseModel):
 
     @field_validator("withdraw_collateral")
     @classmethod
-    def serialize(cls, v: WithdrawCollateralParams) -> WithdrawCollateralParams:
-        v = v.model_copy(deep=True)
-        v.serialize_dict(["amount"], str)
-        return v
+    def validate_withdraw_collateral(cls, v: Any) -> Any:
+        if isinstance(v, WithdrawCollateralParams):
+            v = v.model_copy(deep=True)
+            v.serialize_dict(["amount"], str)
 
-    @field_validator("withdraw_collateral")
-    @classmethod
-    def validate_to_tx_request(cls, v: Any) -> Any:
         if isinstance(v, BaseParamsSigned):
             return to_tx_request(cls, v)
         return v
@@ -507,15 +492,12 @@ class LiquidateSubaccountRequest(NadoBaseModel):
 
     @field_validator("liquidate_subaccount")
     @classmethod
-    def serialize(cls, v: LiquidateSubaccountParams) -> LiquidateSubaccountParams:
-        v = v.model_copy(deep=True)
-        v.serialize_dict(["amount"], str)
-        v.serialize_dict(["liquidatee"], bytes32_to_hex)
-        return v
+    def validate_liquidate_subaccount(cls, v: Any) -> Any:
+        if isinstance(v, LiquidateSubaccountParams):
+            v = v.model_copy(deep=True)
+            v.serialize_dict(["amount"], str)
+            v.serialize_dict(["liquidatee"], bytes32_to_hex)
 
-    @field_validator("liquidate_subaccount")
-    @classmethod
-    def validate_to_tx_request(cls, v: Any) -> Any:
         if isinstance(v, BaseParamsSigned):
             return to_tx_request(cls, v)
         return v
@@ -538,14 +520,11 @@ class MintNlpRequest(NadoBaseModel):
 
     @field_validator("mint_nlp")
     @classmethod
-    def serialize(cls, v: MintNlpParams) -> MintNlpParams:
-        v = v.model_copy(deep=True)
-        v.serialize_dict(["quoteAmount"], str)
-        return v
+    def validate_mint_nlp(cls, v: Any) -> Any:
+        if isinstance(v, MintNlpParams):
+            v = v.model_copy(deep=True)
+            v.serialize_dict(["quoteAmount"], str)
 
-    @field_validator("mint_nlp")
-    @classmethod
-    def validate_to_tx_request(cls, v: Any) -> Any:
         if isinstance(v, BaseParamsSigned):
             return to_tx_request(cls, v)
         return v
@@ -568,14 +547,11 @@ class BurnNlpRequest(NadoBaseModel):
 
     @field_validator("burn_nlp")
     @classmethod
-    def serialize(cls, v: BurnNlpParams) -> BurnNlpParams:
-        v = v.model_copy(deep=True)
-        v.serialize_dict(["nlpAmount"], str)
-        return v
+    def validate_burn_nlp(cls, v: Any) -> Any:
+        if isinstance(v, BurnNlpParams):
+            v = v.model_copy(deep=True)
+            v.serialize_dict(["nlpAmount"], str)
 
-    @field_validator("burn_nlp")
-    @classmethod
-    def validate_to_tx_request(cls, v: Any) -> Any:
         if isinstance(v, BaseParamsSigned):
             return to_tx_request(cls, v)
         return v
@@ -598,14 +574,11 @@ class LinkSignerRequest(NadoBaseModel):
 
     @field_validator("link_signer")
     @classmethod
-    def serialize(cls, v: LinkSignerParams) -> LinkSignerParams:
-        v = v.model_copy(deep=True)
-        v.serialize_dict(["signer"], bytes32_to_hex)
-        return v
+    def validate_link_signer(cls, v: Any) -> Any:
+        if isinstance(v, LinkSignerParams):
+            v = v.model_copy(deep=True)
+            v.serialize_dict(["signer"], bytes32_to_hex)
 
-    @field_validator("link_signer")
-    @classmethod
-    def validate_to_tx_request(cls, v: Any) -> Any:
         if isinstance(v, BaseParamsSigned):
             return to_tx_request(cls, v)
         return v
