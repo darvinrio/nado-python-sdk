@@ -17,7 +17,7 @@ from nado_protocol.utils.enum import StrEnum
 from nado_protocol.client.context import *
 
 from typing import Union
-from pydantic import AnyUrl, parse_obj_as
+from pydantic import AnyUrl
 
 
 class NadoClientMode(StrEnum):
