@@ -1,7 +1,7 @@
 from nado_protocol.utils.enum import StrEnum
 from typing import Dict, List, Optional, Tuple, Type, Union
 
-from pydantic import Field, field_validator, ConfigDict
+from pydantic import Field, ConfigDict
 from nado_protocol.indexer_client.types.models import (
     IndexerCandlestick,
     IndexerCandlesticksGranularity,
