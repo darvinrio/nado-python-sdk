@@ -94,6 +94,8 @@ def subaccount_to_bytes32(
             raise ValueError("Missing `subaccount_owner` or `subaccount_name`")
         else:
             return hex_to_bytes32(subaccount_owner + str_to_hex(subaccount_name))
+    elif isinstance(subaccount, dict):
+        return subaccount_to_bytes32(SubaccountParams(**subaccount), name)
     else:
         return subaccount
 

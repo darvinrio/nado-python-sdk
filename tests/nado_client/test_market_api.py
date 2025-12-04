@@ -65,6 +65,7 @@ def test_burn_nlp(
                 "nlpAmount": "10",
                 "sender": senders[0].lower(),
                 "nonce": "1",
+                "productId": 1,
             },
             "signature": signature,
         }
